@@ -6,7 +6,7 @@ URL = 'https://github.com/sdtaylor/pyPhenology'
 AUTHOR = 'Shawn Taylor'
 LICENCE = 'MIT'
 LONG_DESCRIPTION = """
-# pyPhenology  
+# pyPhenology
 pyPheonology is a software package for building plant phenology models. It has
 numpy at it’s core, making model building and prediction extremely fast. The
 core code was written to model phenology observations from the National
@@ -15,7 +15,7 @@ The API is inspired by scikit-learn, so all models can work interchangeably
 with the same code. pyPhenology is currently used to build the continental
 scale phenology forecasts on http://phenology.naturecast.org
 
-## Full documentation  
+## Full documentation
 
 [http://pyphenology.readthedocs.io/en/master/](http://pyphenology.readthedocs.io/en/master/)
 
@@ -29,21 +29,21 @@ Install via pip
 pip install pyPhenology
 ```
 
-Or install the latest version from Github  
+Or install the latest version from Github
 
 ```
 pip install git+git://github.com/sdtaylor/pyPhenology
 ```
 
 ## Get in touch
-See the [GitHub Repo](https://github.com/sdtaylor/pyPhenology) to see the 
+See the [GitHub Repo](https://github.com/sdtaylor/pyPhenology) to see the
 source code or submit issues and feature requests.
 
 ## Citation
 
 If you use this software in your research please cite it as:
 
-Taylor, S. D. (2018). pyPhenology: A python framework for plant phenology 
+Taylor, S. D. (2018). pyPhenology: A python framework for plant phenology
 modelling. Journal of Open Source Software, 3(28), 827. https://doi.org/10.21105/joss.00827
 
 Bibtex:
@@ -88,4 +88,6 @@ setup(name=NAME,
       license=LICENCE,
       packages=find_packages(),
       include_package_data=True,
-      zip_safe=False)
+      zip_safe=False,
+      install_requires=["scipy>=1.2", "joblib>=0.12", "pandas>=1.0", "numpy>=1.20", "scikit-learn", "matplotlib>=3.0"],
+      extras_require={"dev": ["black", "flake8", "pycaret"]})

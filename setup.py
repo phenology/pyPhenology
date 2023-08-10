@@ -89,5 +89,5 @@ setup(name=NAME,
       packages=find_packages(),
       include_package_data=True,
       zip_safe=False,
-      install_requires=["scipy>=1.2", "joblib>=0.12", "pandas>=1.0", "numpy>=1.20", "scikit-learn", "matplotlib>=3.0"],
-      extras_require={"dev": ["black", "flake8", "pycaret"]})
+      install_requires=["ruamel.yaml>=0.16.0", "scipy>=1.2", "joblib>=0.12", "pandas>=1.0", "numpy>=1.20", "scikit-learn", "matplotlib>=3.0"],
+      extras_require={"dev": ["black", "flake8", "pycaret", "pytest"]})

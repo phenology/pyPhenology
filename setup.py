@@ -1,10 +1,10 @@
 from setuptools import setup, find_packages
 
-NAME ='pyPhenology'
-DESCRIPTION = 'Plant phenology models in python'
-URL = 'https://github.com/sdtaylor/pyPhenology'
-AUTHOR = 'Shawn Taylor'
-LICENCE = 'MIT'
+NAME = "pyPhenology"
+DESCRIPTION = "Plant phenology models in python"
+URL = "https://github.com/sdtaylor/pyPhenology"
+AUTHOR = "Shawn Taylor"
+LICENCE = "MIT"
 LONG_DESCRIPTION = """
 # pyPhenology
 pyPheonology is a software package for building plant phenology models. It has
@@ -74,20 +74,30 @@ Development of this software was funded by
 
 # Set the version number in pyPhenology/version.py
 version = {}
-with open('pyPhenology/version.py') as fp:
+with open("pyPhenology/version.py") as fp:
     exec(fp.read(), version)
-VERSION = version['__version__']
+VERSION = version["__version__"]
 
-setup(name=NAME,
-      version=VERSION,
-      description=DESCRIPTION,
-      long_description = LONG_DESCRIPTION,
-      long_description_content_type='text/markdown',
-      url=URL,
-      author=AUTHOR,
-      license=LICENCE,
-      packages=find_packages(),
-      include_package_data=True,
-      zip_safe=False,
-      install_requires=["ruamel.yaml>=0.16.0", "scipy>=1.2", "joblib>=0.12", "pandas>=1.0", "numpy>=1.20", "scikit-learn", "matplotlib>=3.0"],
-      extras_require={"dev": ["black", "flake8", "pycaret", "pytest"]})
+setup(
+    name=NAME,
+    version=VERSION,
+    description=DESCRIPTION,
+    long_description=LONG_DESCRIPTION,
+    long_description_content_type="text/markdown",
+    url=URL,
+    author=AUTHOR,
+    license=LICENCE,
+    packages=find_packages(),
+    include_package_data=True,
+    zip_safe=False,
+    install_requires=[
+        "ruamel.yaml>=0.16.0",
+        "scipy>=1.2",
+        "joblib>=0.12",
+        "pandas>=1.0",
+        "numpy>=1.20",
+        "scikit-learn",
+        "matplotlib>=3.0",
+    ],
+    extras_require={"dev": ["black", "flake8", "pycaret", "pytest"]},
+)

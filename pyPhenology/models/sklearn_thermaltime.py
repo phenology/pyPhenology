@@ -6,21 +6,31 @@ from .thermaltime import ThermalTime
 
 
 class SklearnThermalTime(BaseEstimator, RegressorMixin):
-    def __init__(self, t1=None, T=None, F=None):
+    def __init__(
+        self,
+        t1=None,
+        T=None,
+        F=None,
+        loss_function="rmse",
+        method="DE",
+        optimizer_params="practical",
+        verbose=False,
+        debug=False,
+    ):
         self.t1 = t1
         self.T = T
         self.F = F
+        self.loss_function = loss_function
+        self.method = method
+        self.optimizer_params = optimizer_params
+        self.verbose = verbose
+        self.debug = debug
         # TODO check ranges 't1': (-67, 298), 'T': (-25, 25), 'F': (0, 1000)
 
     def fit(
         self,
         X,
         y,
-        loss_function="rmse",
-        method="DE",
-        optimizer_params="practical",
-        verbose=False,
-        debug=False,
     ):
         # Check that X and y have correct shape
         X, y = check_X_y(X, y)
@@ -44,11 +54,11 @@ class SklearnThermalTime(BaseEstimator, RegressorMixin):
         self.model_.fit(
             observations,
             predictors,
-            optimizer_params=optimizer_params,
-            loss_function=loss_function,
-            method=method,
-            verbose=verbose,
-            debug=debug,
+            optimizer_params=self.optimizer_params,
+            loss_function=self.loss_function,
+            method=self.method,
+            verbose=self.verbose,
+            debug=self.debug,
         )
 
         return self

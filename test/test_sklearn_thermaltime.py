@@ -5,9 +5,11 @@ https://scikit-learn.org/stable/developers/develop.html#rolling-your-own-estimat
 import unittest
 from sklearn.utils.estimator_checks import check_estimator
 from pyPhenology.models.sklearn_thermaltime import SklearnThermalTime
-from pycaret.regression import RegressionExperiment, save_model, load_model, predict_model
+from pycaret.regression import RegressionExperiment, predict_model
 from pyPhenology import utils
+from pyPhenology.models import utils as mu
 import pandas as pd
+import numpy as np
 
 
 class TestSklearnCompliance(unittest.TestCase):
@@ -36,28 +38,55 @@ class TestSklearnCompliance(unittest.TestCase):
                         self.skipTest(f"Skipping {name}.")
 
 
-class TestPyCaretCompliance():
-    # TODO add the test with real sample dataset
+class TestPyCaretCompliance:
     def test_pycaret_compatible(self, tmp_path):
-        # Use pyphenology test data
-        observations, temp = utils.load_test_data(name='vaccinium')
-        df = pd.DataFrame(
-            data={
-                "doy": observations["doy"],
-                "temp": temp["temperature"]}
-                )
+        # Use pyphenology data to train the model: this pipeline is based on
+        # the examples/model_selection_aic.py and examples/model_rmse.py
+        observations, predictors = utils.load_test_data(
+            name="vaccinium", phenophase="budburst"
+        )
+        Model = utils.load_model("ThermalTime")
+        model = Model()
+        observations_test = observations[:10]
+        observed_doy = observations_test.doy.values
+        observations_train = observations[10:]
+        model.fit(
+            observations_train, predictors, optimizer_params="practical"
+            )
+        predicted_doy = model.predict(
+            observations_test, predictors, aggregation="none"
+            )
+        rmse_phenology = np.sqrt(np.mean((predicted_doy - observed_doy) ** 2))
+
+        # Prepare data to train the model using pycaret
+        doy_array, temperature_array, _ = mu.misc.temperature_only_data_prep(
+            observations, predictors, for_prediction=False
+        )
+        df = pd.DataFrame(temperature_array.T)
+        df["doy"] = doy_array
         df.dropna(inplace=True)
 
+        # Create pycaret instances
         exp = RegressionExperiment()
-        exp.setup(df, target='doy', session_id=123)
+        exp.setup(df, target="doy", session_id=123, train_size=0.80)
         model = exp.create_model(SklearnThermalTime(), cross_validation=False)
-        # # - ValueError: _CURRENT_EXPERIMENT global variable is not set. Please
-        # #   run setup() first.
-        save_model(model, tmp_path / "pycaret_thermaltime")
+        exp.save_model(model, tmp_path / "pycaret_thermaltime")
 
-        # loaded_model = load_model(tmp_path / "pycaret_thermaltime")
-        # loaded_model.setup(df, target='doy', session_id=123)
-        # loaded_model.predict_model(data =temp["temperature"])
+        # Load the saved model and use it for predictions
+        loaded_model = exp.load_model(tmp_path / "pycaret_thermaltime")
+
+        # Use pyphenology data for predictions
+        temperature_array, _ = mu.misc.temperature_only_data_prep(
+            observations_test, predictors, for_prediction=True
+        )
+        df_predict = pd.DataFrame(temperature_array.T)
+        df_predict.dropna(inplace=True)
+        predictions = predict_model(loaded_model, data=df_predict)
+        predicted_doy = predictions["prediction_label"].values
+        rmse_pycaret = np.sqrt(np.mean((predicted_doy - observed_doy) ** 2))
+
+        assert abs(rmse_phenology - rmse_pycaret) < 1  # not strict
+
 
 if __name__ == "__main__":
     unittest.main()

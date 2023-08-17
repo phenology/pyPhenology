@@ -5,7 +5,7 @@ https://scikit-learn.org/stable/developers/develop.html#rolling-your-own-estimat
 import unittest
 from sklearn.utils.estimator_checks import check_estimator
 from pyPhenology.models.sklearn_thermaltime import SklearnThermalTime
-from pycaret.regression import RegressionExperiment, predict_model
+from pycaret.regression import RegressionExperiment, predict_model, load_model
 from pyPhenology import utils
 from pyPhenology.models import utils as mu
 import pandas as pd
@@ -73,12 +73,11 @@ class TestPyCaretCompliance:
         exp.save_model(model, tmp_path / "pycaret_thermaltime")
 
         # Load the saved model and use it for predictions
-        loaded_model = exp.load_model(tmp_path / "pycaret_thermaltime")
+        loaded_model = load_model(tmp_path / "pycaret_thermaltime")
         predictions = predict_model(loaded_model, data=df_test)
         predicted_doy = predictions["prediction_label"].values
         rmse_pycaret = np.sqrt(np.mean((predicted_doy - observed_doy) ** 2))
 
-        print(rmse_phenology)
         # Note: if data changes, the test might fail
         # Note: pyPhenology RMSE changes randomly!
         assert abs(rmse_phenology - rmse_pycaret) < 1  # 1 doy, not strict

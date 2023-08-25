@@ -43,6 +43,15 @@ class SklearnThermalTime(BaseEstimator, RegressorMixin):
 
         # Convert incoming data to expected structure as documented here
         # https://pyphenology.readthedocs.io/en/master/data_structures.html
+
+        # year: The year of the temperature timeseries, here we assume that they
+        # are in the same year of 2000
+        # site_id: A site identifier for each location, here we assume that the
+        # number of sites is equal to number of rows in X
+        # doy: The julian date of the temperature, here it is a list of numbers
+        # each corresponds to a column of X
+        # temperature: The temperature i.e. X the predictor
+
         predictors = pd.DataFrame(
             {
                 "year": X.size * [2000],

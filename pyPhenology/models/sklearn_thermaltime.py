@@ -40,6 +40,8 @@ class SklearnThermalTime(BaseEstimator, RegressorMixin):
 
         # Define temperature, doy_series
         self.model_ = ThermalTime()
+        # Convert incoming data to expected structure as documented here
+        # https://pyphenology.readthedocs.io/en/master/data_structures.html
         predictors = pd.DataFrame(
             {
                 "year": len(X.flatten()) * [2000],

@@ -34,17 +34,18 @@ class SklearnThermalTime(BaseEstimator, RegressorMixin):
     ):
         # Check that X and y have correct shape
         X, y = check_X_y(X, y)
-        
+
         self.X_ = X
         self.y_ = y
 
         # Define temperature, doy_series
         self.model_ = ThermalTime()
+
         # Convert incoming data to expected structure as documented here
         # https://pyphenology.readthedocs.io/en/master/data_structures.html
         predictors = pd.DataFrame(
             {
-                "year": len(X.flatten()) * [2000],
+                "year": X.size * [2000],
                 "site_id": np.repeat(np.arange(len(X)), X.shape[1]),
                 "doy": list(range(X.shape[1])) * X.shape[0],
                 "temperature": X.flatten(),

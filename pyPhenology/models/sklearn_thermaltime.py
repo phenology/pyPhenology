@@ -34,7 +34,7 @@ class SklearnThermalTime(BaseEstimator, RegressorMixin):
     ):
         # Check that X and y have correct shape
         X, y = check_X_y(X, y)
-        # raise Exception(X)
+        
         self.X_ = X
         self.y_ = y
 

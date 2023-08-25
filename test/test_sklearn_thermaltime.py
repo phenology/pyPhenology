@@ -49,7 +49,19 @@ class TestPyCaretCompliance:
         observations_test = observations[:10]
         observed_doy = observations_test.doy.values
         observations_train = observations[10:]
-        model.fit(observations_train, predictors)
+
+        # set `seed`` here, so the results of "DE" method (default) does not
+        # change! see
+        # https://pyphenology.readthedocs.io/en/master/optimizers.html
+        optimizer_params = {
+            'maxiter': 1000,
+            'popsize': 50,
+            'mutation': (0.5, 1),
+            'recombination': 0.25,
+            'disp': False,
+            'seed': 123
+        }
+        model.fit(observations_train, predictors, optimizer_params=optimizer_params)
         predicted_doy = model.predict(observations_test, predictors)
         rmse_phenology = np.sqrt(np.mean((predicted_doy - observed_doy) ** 2))
 
@@ -65,8 +77,8 @@ class TestPyCaretCompliance:
 
         # Create pycaret instances
         exp = RegressionExperiment()
-        exp.setup(df, target="doy", session_id=123, test_data=df_test, index=False)
-        model = exp.create_model(SklearnThermalTime(), cross_validation=False)
+        exp.setup(df, target="doy", session_id=123, test_data=df_test, index=False, preprocess=False)
+        model = exp.create_model(SklearnThermalTime(optimizer_params=optimizer_params), cross_validation=False)
 
         # it should be possible to get `RMSE`` from `model` but I want to test
         # `load_model` as below
@@ -78,8 +90,8 @@ class TestPyCaretCompliance:
         predicted_doy = predictions["prediction_label"].values
         rmse_pycaret = np.sqrt(np.mean((predicted_doy - observed_doy) ** 2))
 
-        # Note: if data changes, the test might fail
-        # Note: pyPhenology RMSE changes randomly!
+        # Note: if data changes, the test might fail!
+        # Note: RMSE of pyPhenology and pyCaret are not exactly the same!
         assert abs(rmse_phenology - rmse_pycaret) < 1  # 1 doy, not strict
 
 

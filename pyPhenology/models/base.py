@@ -57,12 +57,13 @@ class BaseModel():
             # sklearn compatible
             # Convert incoming data to expected structure as documented here
             # https://pyphenology.readthedocs.io/en/master/data_structures.html
-            # doy_series: The julian date of the temperature, here it is a list of numbers
+            # doy_series: The julian date of the temperature, here it is an array of numbers
             # each corresponds to a column of X
             X = predictors
-            self.fitting_predictors = {'temperature': X.flatten(),
-                                        'doy_series': list(range(X.shape[1])) * X.shape[0]}
+            self.fitting_predictors = {'temperature': X.T,
+                                        'doy_series': np.arange(X.shape[1])}
             self.obs_fitting = observations
+
         else:
             # pyphenology compatible
             validation.validate_predictors(predictors, self._required_data['predictor_columns'])
@@ -162,12 +163,11 @@ class BaseModel():
             # sklearn compatible
             # Convert incoming data to expected structure as documented here
             # https://pyphenology.readthedocs.io/en/master/data_structures.html
-            # doy_series: The julian date of the temperature, here it is a list of numbers
+            # doy_series: The julian date of the temperature, here it is an array of numbers
             # each corresponds to a column of X
             X = predictors
             predictors = {'temperature': X.T,
-                          'doy_series': list(range(X.shape[1]))}
-
+                          'doy_series': np.arange(X.shape[1])}
         else:
             raise TypeError('Invalid arguments. to_predict and predictors ' +
                             'must both be pandas dataframes of new data to predict,' +

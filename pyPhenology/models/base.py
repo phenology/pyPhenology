@@ -57,6 +57,9 @@ class BaseModel():
             # sklearn compatible
             # Convert incoming data to expected structure as documented here
             # https://pyphenology.readthedocs.io/en/master/data_structures.html
+            # In pyphenology, the processed temperature has a shape of
+            # (features, samples) whereas in sklearn has (samples, features),
+            # this is the reason for X.T below.
             # doy_series: The julian date of the temperature, here it is an array of numbers
             # each corresponds to a column of X
             X = predictors
@@ -163,6 +166,9 @@ class BaseModel():
             # sklearn compatible
             # Convert incoming data to expected structure as documented here
             # https://pyphenology.readthedocs.io/en/master/data_structures.html
+            # In pyphenology, the processed temperature has a shape of
+            # (features, samples) whereas in sklearn has (samples, features),
+            # this is the reason for X.T below.
             # doy_series: The julian date of the temperature, here it is an array of numbers
             # each corresponds to a column of X
             X = predictors

@@ -54,19 +54,10 @@ class BaseModel():
             raise RuntimeError('No parameters to estimate')
 
         if isinstance(predictors, np.ndarray) and isinstance(observations, np.ndarray):
-            # sklearn compatible
-            # Convert incoming data to expected structure as documented here
-            # https://pyphenology.readthedocs.io/en/master/data_structures.html
-            # In pyphenology, the processed temperature has a shape of
-            # (features, samples) whereas in sklearn has (samples, features),
-            # this is the reason for X.T below.
-            # doy_series: The julian date of the temperature, here it is an array of numbers
-            # each corresponds to a column of X
-            X = predictors
-            self.fitting_predictors = {'temperature': X.T,
-                                        'doy_series': np.arange(X.shape[1])}
-            self.obs_fitting = observations
-
+            # sklearn compatible, not implemented for M1 and Naive yet
+            self._organize_sklearn_predictors(y=observations,
+                                              X=predictors,
+                                              for_prediction=False)
         else:
             # pyphenology compatible
             validation.validate_predictors(predictors, self._required_data['predictor_columns'])
@@ -163,17 +154,10 @@ class BaseModel():
                 raise TypeError('No to_predict + temperature passed, and' +
                                 'no fitting done. Nothing to predict')
         elif to_predict is None and isinstance(predictors, np.ndarray):
-            # sklearn compatible
-            # Convert incoming data to expected structure as documented here
-            # https://pyphenology.readthedocs.io/en/master/data_structures.html
-            # In pyphenology, the processed temperature has a shape of
-            # (features, samples) whereas in sklearn has (samples, features),
-            # this is the reason for X.T below.
-            # doy_series: The julian date of the temperature, here it is an array of numbers
-            # each corresponds to a column of X
-            X = predictors
-            predictors = {'temperature': X.T,
-                          'doy_series': np.arange(X.shape[1])}
+            # sklearn compatible, not implemented for M1 and Naive yet
+            predictors = self._organize_sklearn_predictors(y=to_predict,
+                                                           X=predictors,
+                                                           for_prediction=True)
         else:
             raise TypeError('Invalid arguments. to_predict and predictors ' +
                             'must both be pandas dataframes of new data to predict,' +
@@ -219,6 +203,23 @@ class BaseModel():
             self.fitting_predictors = {'temperature': temperature_fitting,
                                        'doy_series': doy_series}
             self.obs_fitting = cleaned_observations
+
+    def _organize_sklearn_predictors(self, y, X, for_prediction):
+        """Convert incoming data to expected structure.
+        It is documented in
+        https://pyphenology.readthedocs.io/en/master/data_structures.html In
+        pyphenology, the processed temperature has a shape of (features,
+        samples) whereas in sklearn has (samples, features), this is the reason
+        for X.T below. `doy_series` is he julian date of the temperature, here
+        it is an array of numbers each corresponds to a column of X.
+        """
+        if for_prediction:
+            return {'temperature': X.T,
+                    'doy_series': np.arange(X.shape[1])}
+        else:
+            self.fitting_predictors = {'temperature': X.T,
+                                        'doy_series': np.arange(X.shape[1])}
+            self.obs_fitting = y
 
     def _validate_formatted_predictors(self, predictors):
         """Make sure everything is valid.

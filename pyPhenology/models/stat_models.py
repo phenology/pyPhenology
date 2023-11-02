@@ -7,7 +7,7 @@ class Linear(BaseModel):
     """Linear Regression Model
 
     A 2 parameter regression model with :math:`DOY` as
-    the response variable. 
+    the response variable.
 
     .. math::
         DOY = \\beta_{1} + \\beta_{2}T_{mean}
@@ -55,9 +55,9 @@ class Linear(BaseModel):
 class Naive(BaseModel):
     """A naive model of the spatially interpolated mean
 
-    This is the mean doy for an event adjusted for latitude, essentially    
+    This is the mean doy for an event adjusted for latitude, essentially
     a 2 parameter regression model with :math:`DOY` as
-    the response variable. 
+    the response variable.
 
     .. math::
         DOY = \\beta_{1} + \\beta_{2}Latitude
@@ -102,6 +102,20 @@ class Naive(BaseModel):
         else:
             self.fitting_predictors = {'latitude': obs_with_latitude.latitude.values}
             self.obs_fitting = obs_with_latitude.doy.values
+
+    def _organize_sklearn_predictors(self, y, X, for_prediction):
+        """Convert incoming data to expected structure.
+        It is documented in
+        https://pyphenology.readthedocs.io/en/master/data_structures.html In
+        pyphenology, the processed temperature has a shape of (features,
+        samples) whereas in sklearn has (samples, features), this is the reason
+        for X.T below.
+        """
+        if for_prediction:
+            return {'latitude': X.T}
+        else:
+            self.fitting_predictors = {'latitude': X.T}
+            self.obs_fitting = y
 
     def _validate_formatted_predictors(self, predictors):
         pass

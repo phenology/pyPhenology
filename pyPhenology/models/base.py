@@ -54,7 +54,7 @@ class BaseModel():
             raise RuntimeError('No parameters to estimate')
 
         if isinstance(predictors, np.ndarray) and isinstance(observations, np.ndarray):
-            # sklearn compatible, not implemented for M1 and Naive yet
+            # sklearn compatible, not implemented for M1 yet
             self._organize_sklearn_predictors(y=observations,
                                               X=predictors,
                                               for_prediction=False)

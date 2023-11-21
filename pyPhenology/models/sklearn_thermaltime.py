@@ -6,6 +6,13 @@ from .thermaltime import ThermalTime
 
 
 class SklearnThermalTime(BaseEstimator, RegressorMixin):
+    """
+    Sklearn data structure is assuming 'predictors' with shape (a,b), where a is
+    equal to the sample size in 'observations', and b is equal to the number of
+    days in the yearly time series of temperature (ie. Jan 1 - July 30) where
+    there is no gaps.
+    """
+
     def __init__(
         self,
         t1=None,

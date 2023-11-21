@@ -53,15 +53,19 @@ class BaseModel():
         if len(self._parameters_to_estimate) == 0:
             raise RuntimeError('No parameters to estimate')
 
-        if isinstance(predictors, np.ndarray) and isinstance(observations, np.ndarray):
+        # check if the data is sklearn compatible
+        valid_sklearn, X, y = validation.validate_sklearn_Xy(predictors, observations)
+        if valid_sklearn:
             # sklearn compatible, not implemented for M1 yet
-            self._organize_sklearn_predictors(y=observations,
-                                              X=predictors,
+            self._organize_sklearn_predictors(y=y,
+                                              X=X,
                                               for_prediction=False)
         else:
-            # pyphenology compatible
+            warn('Data is not sklearn compatible, trying pyphenology data structure')
+            # check if pyphenology compatible
             validation.validate_predictors(predictors, self._required_data['predictor_columns'])
             validation.validate_observations(observations)
+
             self._organize_predictors(predictors=predictors,
                                     observations=observations,
                                     for_prediction=False)
@@ -131,13 +135,31 @@ class BaseModel():
         {'to_predict':pd.DataFrame,'predictors':pd.DataFrame}
         {'to_predict':None,'predictors':None}
         """
+        if to_predict is None and predictors is None:
+            # Making predictions on data used for fitting
+            if self.obs_fitting is not None and self.fitting_predictors is not None:
+                predictors = self.fitting_predictors
+            else:
+                raise TypeError('No to_predict + temperature passed, and' +
+                                    'no fitting done. Nothing to predict')
 
-        if to_predict is None and isinstance(predictors, dict):
-            # predictors is a dict containing data that can be
-            # used directly in _apply_mode()
-            self._validate_formatted_predictors(predictors)
+        elif to_predict is None and predictors is not None:
+            # check if the data is sklearn compatible
+            valid_sklearn, X = validation.validate_sklearn_X(predictors)
+            if valid_sklearn:
+                # not implemented for M1
+                predictors = self._organize_sklearn_predictors(y=None,
+                                                               X=X,
+                                                               for_prediction=True)
 
-        elif isinstance(to_predict, pd.DataFrame) and isinstance(predictors, pd.DataFrame):
+            elif isinstance(predictors, dict):
+                # predictors is a dict containing data that can be
+                # used directly in _apply_mode()
+                self._validate_formatted_predictors(predictors)
+            else:
+                raise TypeError('Invalid arguments.')
+
+        elif to_predict is not None and predictors is not None:
             # New data to predict
             validation.validate_predictors(predictors, self._required_data['predictor_columns'])
             validation.validate_observations(to_predict, for_prediction=True)
@@ -145,19 +167,6 @@ class BaseModel():
             predictors = self._organize_predictors(observations=to_predict,
                                                    predictors=predictors,
                                                    for_prediction=True)
-
-        elif to_predict is None and predictors is None:
-            # Making predictions on data used for fitting
-            if self.obs_fitting is not None and self.fitting_predictors is not None:
-                predictors = self.fitting_predictors
-            else:
-                raise TypeError('No to_predict + temperature passed, and' +
-                                'no fitting done. Nothing to predict')
-        elif to_predict is None and isinstance(predictors, np.ndarray):
-            # sklearn compatible, not implemented for M1 and Naive yet
-            predictors = self._organize_sklearn_predictors(y=to_predict,
-                                                           X=predictors,
-                                                           for_prediction=True)
         else:
             raise TypeError('Invalid arguments. to_predict and predictors ' +
                             'must both be pandas dataframes of new data to predict,' +

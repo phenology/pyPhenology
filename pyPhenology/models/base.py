@@ -55,13 +55,18 @@ class BaseModel():
 
         # check if the data is sklearn compatible
         valid_sklearn, X, y = validation.validate_sklearn_Xy(predictors, observations)
+
+        # sklearn compatible option is not implemented for M1 yet.
+        if "M1" in type(self).__name__:
+            valid_sklearn = False
+
         if valid_sklearn:
-            # sklearn compatible, not implemented for M1 yet
             self._organize_sklearn_predictors(y=y,
                                               X=X,
                                               for_prediction=False)
         else:
-            warn('Data is not sklearn compatible, trying pyphenology data structure')
+            warn('Data or model is not sklearn compatible, trying pyphenology'
+            'see https://pyphenology.readthedocs.io/en/master/data_structures.html#data-structure')
             # check if pyphenology compatible
             validation.validate_predictors(predictors, self._required_data['predictor_columns'])
             validation.validate_observations(observations)
@@ -219,7 +224,7 @@ class BaseModel():
         https://pyphenology.readthedocs.io/en/master/data_structures.html In
         pyphenology, the processed temperature has a shape of (features,
         samples) whereas in sklearn has (samples, features), this is the reason
-        for X.T below. `doy_series` is he julian date of the temperature, here
+        for X.T below. `doy_series` is the julian date of the temperature, here
         it is an array of numbers each corresponds to a column of X.
         """
         if for_prediction:

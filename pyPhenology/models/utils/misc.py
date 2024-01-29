@@ -4,12 +4,12 @@ from warnings import warn
 
 
 def temperature_only_data_prep(observations, predictors, for_prediction=False,
-                               verbose=True):
+                               ):
     """Create a numpy array of shape (a,b), where b
     is equal to the sample size in observations, and a is
     equal to the number of days in the yearly time
     series of temperature (ie. Jan 1 - July 30).
-    Using a numpy array in this way allows for very 
+    Using a numpy array in this way allows for very
     efficient processing of phenology models.
 
     Parameters
@@ -25,9 +25,6 @@ def temperature_only_data_prep(observations, predictors, for_prediction=False,
 
     for_prediction : bool
         Do not return observed_doy, or expect a doy column in observations.
-
-    verbose : bool
-        Show details of processing
 
     Returns
     -------

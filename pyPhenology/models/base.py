@@ -13,11 +13,18 @@ class BaseModel():
         self.obs_fitting = None
         self.temperature_fitting = None
         self.doy_series = None
-        self.debug = False
+
+        self._required_data = {
+            "predictor_columns": [],
+            "predictors": []
+        }
+
+    def _apply_model(self):
+        raise NotImplementedError("Children should implement this.")
 
     def fit(self, observations, predictors, loss_function='rmse',
             method='DE', optimizer_params='practical',
-            verbose=False, debug=False, **kwargs):
+            **kwargs):
         """Estimate the parameters of a model
 
         Parameters:
@@ -29,11 +36,11 @@ class BaseModel():
                 temperature, precipitation, and day length
 
             loss_function : str, or function
-            
-            A string for built in loss functions (currently only 'rmse'), 
+
+            A string for built in loss functions (currently only 'rmse'),
             or a customized function which accpepts 2 arguments. obs and pred,
             both numpy arrays of the same shape
-            
+
             method : str
                 Optimization method to use. Either 'DE' or 'BF' for differential
                 evolution or brute force methods.
@@ -41,12 +48,6 @@ class BaseModel():
             optimizer_params : dict | str
                 Arguments for the scipy optimizer, or one of 3 presets 'testing',
                 'practical', or 'intensive'.
-
-            verbose : bool
-                display progress of the optimizer
-
-            debug : bool
-                display various internals
 
         """
 
@@ -60,33 +61,13 @@ class BaseModel():
                                   observations=observations,
                                   for_prediction=False)
 
-        if debug:
-            verbose = True
-            self.debug = True
-            self.model_timings = []
-            print('estimating params:\n {x} \n '.format(x=self._parameters_to_estimate))
-            print('array passed to optimizer:\n {x} \n'.format(x=self._scipy_bounds()))
-            print('fixed params:\n {x} \n '.format(x=self._fixed_parameters))
-        if verbose:
-            fitting_start = time.time()
-
         self._fitted_params = utils.optimize.fit_parameters(function_to_minimize=self._scipy_error,
                                                             bounds=self._scipy_bounds(),
                                                             method=method,
                                                             results_translator=self._translate_scipy_parameters,
                                                             optimizer_params=optimizer_params,
-                                                            verbose=verbose)
-        if verbose:
-            total_fit_time = round(time.time() - fitting_start, 5)
-            print('Total model fitting time: {s} sec.\n'.format(s=total_fit_time))
+                                                            )
 
-        if debug:
-            n_runs = len(self.model_timings)
-            mean_time = np.mean(self.model_timings).round(5)
-            print('Model iterations: {n}'.format(n=n_runs))
-            print('Mean timing: {t} sec/iteration \n\n'.format(t=mean_time))
-            self.debug = False
-        self._fitted_params.update(self._fixed_parameters)
 
         # Check predictions for 999, indicating a bad fit.
         if np.any(self.predict() == 999):
@@ -105,7 +86,7 @@ class BaseModel():
         Parameters:
             to_predict : dataframe, optional
                 pandas dataframe of site/year combinations to predict from
-                the given predictor data. just like the observations 
+                the given predictor data. just like the observations
                 dataframe used in fit() but (optionally) without the doy column
 
             predictors : dataframe, optional
@@ -161,7 +142,7 @@ class BaseModel():
         """The loss function (ie. RMSE)
 
         Either a sting for a built in function, or a customized
-        function which accpepts 2 arguments. obs, pred, both 
+        function which accpepts 2 arguments. obs, pred, both
         numpy arrays of the same shape
         """
         if isinstance(loss_function, str):
@@ -176,7 +157,7 @@ class BaseModel():
         """Convert data to internal structure used by models
 
         This function inside _base() is used for all the modes which
-        have temperature as the only predictor variables (which is most of them). 
+        have temperature as the only predictor variables (which is most of them).
         Models which have other predictors have their own _organize_predictors() method.
         """
         if for_prediction:
@@ -200,8 +181,8 @@ class BaseModel():
         is passed to predict() or fit().
 
         This function inside _base() is used for all the modes which
-        have temperature as the only predictor variables (which is most of them). 
-        Models which have other predictors have their own 
+        have temperature as the only predictor variables (which is most of them).
+        Models which have other predictors have their own
         _validate_formatted_predictors() method.
         """
         # Don't allow any nan values in 2d temperature array
@@ -324,7 +305,7 @@ class BaseModel():
         """Map parameters from a 1D array to a dictionary for
         use in phenology model functions. Ordering matters
         in unpacking the scipy_array since it isn't labeled. Thus
-        it relies on self._parameters_to_estimate being an 
+        it relies on self._parameters_to_estimate being an
         OrdereddDict
         """
         # If only a single value is being fit, some scipy.
@@ -352,13 +333,8 @@ class BaseModel():
         # add any fixed parameters
         parameters.update(self._fixed_parameters)
 
-        if self.debug:
-            start = time.time()
-
         doy_estimates = self._apply_model(**deepcopy(self.fitting_predictors),
                                           **parameters)
-        if self.debug:
-            self.model_timings.append(time.time() - start)
 
         return self.loss_function(self.obs_fitting, doy_estimates)
 
@@ -388,25 +364,25 @@ class BaseModel():
         Metrics available are root mean square error (``rmse``) and AIC (``aic``).
         For AIC the number of parameters in the model is set to the number of
         parameters actually estimated in ``fit()``, not the total number of
-        model parameters. 
+        model parameters.
 
         Parameters:
             metric : str, optional
                 The metric used either 'rmse' for the root mean square error,
                 or 'aic' for akaike information criteria.
-                
+
             doy_observed : numpy array, optional
                 The true doy values to evaluate with. This must be a numpy
                 array the same length as the number of rows in to_predict
 
             to_predict : dataframe, optional
                 pandas dataframe of site/year combinations to predict from
-                the given predictor data. just like the observations 
+                the given predictor data. just like the observations
                 dataframe used in fit() but (optionally) without the doy column
 
             predictors : dataframe, optional
                 pandas dataframe in the format specific to this package
-        
+
         Returns:
             The score as a float
         """

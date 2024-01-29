@@ -1,6 +1,5 @@
 from pyPhenology import utils, models
 from warnings import warn
-import sys
 import pytest
 
 from numpy.random import default_rng
@@ -18,7 +17,7 @@ flowers_obs, vaccinium_temp = utils.load_test_data(name='vaccinium', phenophase=
 aspen_leaves, aspen_temp = utils.load_test_data(name='aspen', phenophase=371)
 
 # thorough but still relatively quick
-thorough_DE_optimization = {'method':'DE', 'debug':True,
+thorough_DE_optimization = {'method':'DE',
                             'optimizer_params':{'popsize':20,
                                                 'maxiter':100,
                                                 'mutation':1.5,
@@ -44,7 +43,7 @@ test_cases.append({'test_name' : 'Thermal Time Vaccinium Flowers',
                    'expected_params':{'F':448},
                    'fitting_ranges':{'t1':0, 'T':0, 'F':(0,1000)},
                    'fitting_params':thorough_DE_optimization})
-                   
+
 test_cases.append({'test_name' : 'Alternating Vaccinium Leaves',
                    'model' : models.Alternating,
                    'fitting_obs':leaves_obs,
@@ -68,7 +67,7 @@ test_cases.append({'test_name' : 'Uniforc Vaccinium Leaves',
                    'expected_params': {'t1':85, 'b':0, 'c':11, 'F':5},
                    'fitting_ranges':{'t1':(50,100), 'b':(-5,5), 'c':(0,20), 'F':(0,20)},
                   'fitting_params':thorough_DE_optimization})
-    
+
 test_cases.append({'test_name' : 'Uniforc Vaccinium Flowers',
                    'model' : models.Uniforc,
                    'fitting_obs':flowers_obs,
@@ -110,12 +109,12 @@ test_cases.append({'test_name' : 'Naive Model Aspen leaves',
 for case in test_cases:
     # default random state for each
     case['fitting_params']['optimizer_params']['seed'] = default_rng(1)
-        
+
     model = case['model'](parameters = case['fitting_ranges'])
-    model.fit(observations = case['fitting_obs'], predictors=case['fitting_temp'], 
+    model.fit(observations = case['fitting_obs'], predictors=case['fitting_temp'],
               **case['fitting_params'])
     case['estimated_params'] = model.get_params()
-    
+
 ########################################
 # Setup tuples for pytest.mark.parametrize
 test_cases = [(c['test_name'], c['expected_params'],c['estimated_params']) for c in test_cases]
@@ -127,7 +126,7 @@ def test_know_parameter_values(test_name, expected_params, estimated_params):
     for param, expected_value in expected_params.items():
         if int(estimated_params[param]) != expected_value:
             all_values_match = False
-    
+
     # Slight variations can potentially happen with updates in the algorithms of
     # of underlying scipy/numpy packages. They are likely not showstoppers, so just
     # use warnings if things do not match.

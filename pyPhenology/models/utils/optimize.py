@@ -71,14 +71,14 @@ def validate_optimizer_parameters(optimizer_method, optimizer_params):
 
 
 def fit_parameters(function_to_minimize, bounds, method, results_translator,
-                   optimizer_params, verbose=False):
-    """Internal functions to estimate model parameters. 
+                   optimizer_params):
+    """Internal functions to estimate model parameters.
 
     Methods
     -------
     'DE', Differential evolution
         Uses a large number of randomly specified parameters which converge
-        on a global optimum. 
+        on a global optimum.
 
         https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.differential_evolution.html
 
@@ -167,9 +167,5 @@ def fit_parameters(function_to_minimize, bounds, method, results_translator,
         fitted_parameters = results_translator(optimize_output)
     else:
         raise ValueError('Uknown optimizer method: ' + str(method))
-
-    if verbose:
-        print('Optimizer method: {x}\n'.format(x=method))
-        print('Optimizer parameters: \n {x}\n'.format(x=optimizer_params))
 
     return fitted_parameters

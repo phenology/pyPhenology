@@ -9,7 +9,7 @@ from joblib import Parallel, delayed
 class EnsembleBase():
     def __init__(self):
         pass
-    
+
     def score(self, metric='rmse', doy_observed=None,
               to_predict=None, predictors=None):
         """Get the scoring metric for fitted data
@@ -36,10 +36,10 @@ class EnsembleBase():
         error_function = utils.optimize.get_loss_function(method=metric)
 
         return error_function(doy_observed, doy_estimated)
-    
+
     def save_params(self, filename, overwrite=False):
         """Save model parameters
-        
+
 
         Parameters:
             filename : str
@@ -59,11 +59,11 @@ class EnsembleBase():
         """A wrapper to fit models within joblib.Parallel"""
         model.fit(self.observations, self.predictors, **kwargs)
         return model
-    
+
     def _predict_job(self, model, to_predict, predictors, **kwargs):
         """A wrapper to predict new data within joblib.Parallel"""
         return model.predict(to_predict=to_predict, predictors=predictors, **kwargs)
-    
+
     def ensemble_shape(self, shape=()):
         """Returns a tuple signifying the layers of submodels
         ie. for a single 50-bootstrap model the shape is (50,)
@@ -74,7 +74,7 @@ class EnsembleBase():
             return self.model_list[0].ensemble_shape(shape = shape + (num_sub_models,))
         else:
             return shape + (num_sub_models,)
-    
+
 class BootstrapModel(EnsembleBase):
     """Fit a model using bootstrapping of the data.
 
@@ -123,14 +123,14 @@ class BootstrapModel(EnsembleBase):
             # core_model and num_bootstraps is ignored
             model_info = utils.misc.read_saved_model(model_file=parameters)
             self._parse_fully_fitted_model(model_info)
- 
+
         elif isinstance(parameters, dict):
             # A dictionary passed in the parameters argument can either be
-            # a list of parameters to pass to the core model (such as in the 
+            # a list of parameters to pass to the core model (such as in the
             # example above), OR a full fitted model specification (essentially
-            # the read json from a saved model file). The latter is only used 
+            # the read json from a saved model file). The latter is only used
             # if this is from another ensemble method
-            
+
             if 'model_name' in parameters:
                 # A saved model
                 self._parse_fully_fitted_model(parameters)
@@ -138,7 +138,7 @@ class BootstrapModel(EnsembleBase):
                 # Custom parameter values to pass to each bootstrap model
                 if core_model is None or num_bootstraps is None:
                     raise TypeError('core_model and num_bootstraps must be set')
-    
+
                 validation.validate_model(core_model())
                 for i in range(num_bootstraps):
                     self.model_list.append(core_model(parameters=parameters))
@@ -161,15 +161,15 @@ class BootstrapModel(EnsembleBase):
         for bootstrap_iteration in model_info['parameters']:
             fitted_bootstrap_iteration = load_model_parameters(bootstrap_iteration)
             self.model_list.append(fitted_bootstrap_iteration)
-    
+
     def _fit_job(self, model, **kwargs):
         """A wrapper to fit models within joblib.Parallel"""
         obs_shuffled = self.observations.sample(frac=1, replace=True).copy()
         model.fit(obs_shuffled, self.predictors, **kwargs)
         return model
 
-    
-    def fit(self, observations, predictors, n_jobs=1, verbose=False, debug=False, **kwargs):
+
+    def fit(self, observations, predictors, n_jobs=1, **kwargs):
         """Fit the underlying core models
 
         Parameters:
@@ -187,10 +187,10 @@ class BootstrapModel(EnsembleBase):
         """
         self.observations = observations
         self.predictors = predictors
-        
+
         self.model_list = Parallel(n_jobs = n_jobs)(delayed(self._fit_job)(m, **kwargs) for m in self.model_list)
 
-    def predict(self, to_predict=None, predictors=None, 
+    def predict(self, to_predict=None, predictors=None,
                 aggregation='mean', n_jobs=1, **kwargs):
         """Make predictions from the bootstrapped models.
 
@@ -202,7 +202,7 @@ class BootstrapModel(EnsembleBase):
             aggregation : str
                 Either 'mean','median', or 'none'. 'none' return *all* predictions
                 in an array of size (num_bootstraps, num_samples)
-            
+
             n_jobs : int
                 number of parallel processes to use
 
@@ -233,7 +233,7 @@ class BootstrapModel(EnsembleBase):
                                              **kwargs))
         else:
             predictions = Parallel(n_jobs = n_jobs)(delayed(self._predict_job)
-                (m, to_predict = to_predict, predictors = predictors, 
+                (m, to_predict = to_predict, predictors = predictors,
                  aggregation=aggregation, **kwargs)
                 for m in self.model_list)
 
@@ -251,14 +251,14 @@ class BootstrapModel(EnsembleBase):
 
     def _check_parameter_completeness(self):
         """Make sure all parameters have been set from fitting or loading at initialization"""
-        
+
         [m._check_parameter_completeness() for m in self.model_list]
 
     def get_params(self):
         """This returns list of dictionaries with parameters of each bootstrap model
         """
         self._check_parameter_completeness()
-        
+
         all_params = []
         for i, model in enumerate(self.model_list):
             all_params.append(deepcopy(model.get_params()))
@@ -273,22 +273,22 @@ class BootstrapModel(EnsembleBase):
         for i, model in enumerate(self.model_list):
             core_model_info.append(deepcopy(model._get_model_info()))
             core_model_info[-1].update({'bootstrap_num': i})
-            
+
         return {'model_name': type(self).__name__,
                 'parameters': core_model_info}
 
 class Ensemble(EnsembleBase):
     """Fit an ensemble of different models.
-    
-    This model can fit multiple models into an ensemble where the 
+
+    This model can fit multiple models into an ensemble where the
     weights are equal among all ensemble members.
-    
+
     Note that the core models must be passed initialized. They will be
     fit within the Ensemble model::
 
                 from pyPhenology import models, utils
                 observations, predictors = utils.load_test_data(name='vaccinium')
-                
+
                 m1 = models.Thermaltime(parameters={'T':0})
                 m2 = models.Thermaltime(parameters={'T':5})
                 m3 = models.Uniforc(parameters={'t1':1})
@@ -296,11 +296,11 @@ class Ensemble(EnsembleBase):
 
                 ensemble = models.Ensemble(core_models=[m1,m2,m3,m4])
                 ensemble.fit(observations, predictors)
-    
+
     """
     def __init__(self, core_models):
         """Ensemble model
-        
+
         core_models : list of pyPhenology models, or a saved model file
 
         """
@@ -311,7 +311,7 @@ class Ensemble(EnsembleBase):
         if isinstance(core_models, list):
             # List of models to fit
             self.model_list = core_models
-            
+
         elif isinstance(core_models, str):
             # A filename pointing toward a file from save_params()
             model_info = utils.misc.read_saved_model(model_file=core_models)
@@ -337,7 +337,7 @@ class Ensemble(EnsembleBase):
             fitted_ensemble_member = load_model_parameters(model)
             self.model_list.append(fitted_ensemble_member)
 
-    def fit(self, observations, predictors, n_jobs=1, verbose=False, debug=False, **kwargs):
+    def fit(self, observations, predictors, n_jobs=1, **kwargs):
         """Fit the underlying core models
         Parameters:
             observations : dataframe
@@ -357,7 +357,7 @@ class Ensemble(EnsembleBase):
 
         self.model_list = Parallel(n_jobs = n_jobs)(delayed(self._fit_job)(m, **kwargs) for m in self.model_list)
 
-    def predict(self, to_predict=None, predictors=None, 
+    def predict(self, to_predict=None, predictors=None,
                 aggregation='mean', n_jobs=1, **kwargs):
         """Make predictions..
 
@@ -366,11 +366,11 @@ class Ensemble(EnsembleBase):
 
         Parameters:
             see core model description
-            
+
             aggregation : str
                 Either 'mean', 'median', or 'none'. If using 'none' this returns
-                an array of tuple of size (number of members, predictions). 
-            
+                an array of tuple of size (number of members, predictions).
+
             n_jobs : int
                 number of parallel processes to use
         """
@@ -391,7 +391,7 @@ class Ensemble(EnsembleBase):
                                              **kwargs))
         else:
             predictions = Parallel(n_jobs = n_jobs)(delayed(self._predict_job)
-                (m, to_predict = to_predict, predictors = predictors, 
+                (m, to_predict = to_predict, predictors = predictors,
                  aggregation=aggregation, **kwargs)
                 for m in self.model_list)
 
@@ -415,7 +415,7 @@ class Ensemble(EnsembleBase):
         """This returns list of dictionaries with parameters of each model in the ensemble
         """
         self._check_parameter_completeness()
-        
+
         all_params = []
         for i, model in enumerate(self.model_list):
             all_params.append(deepcopy(model.get_params()))
@@ -437,26 +437,26 @@ class WeightedEnsemble(EnsembleBase):
 
     This model can combine multiple models into an ensemble where predictions
     are the weighted average of the predictions from each model. The weights
-    are derived via "stacking" as described in Dormann et al. 2018. The 
+    are derived via "stacking" as described in Dormann et al. 2018. The
     steps are as followed:
 
         1. Subset the data into random training/testing sets.
         2. Fit each core model on the training set.
         3. Make predictions on the testing set.
-        4. Find the weights which minimize RMSE of the testing set. 
+        4. Find the weights which minimize RMSE of the testing set.
         5. Repeat 1-4 for H iterations.
         6. Take the average weight for each model from all iterations as
-           final weight used in the ensemble. These will sum to 1. 
+           final weight used in the ensemble. These will sum to 1.
         7. Fit the core models a final time on the full dataset given
            to the fit() method. Parameters derived from this final
-           iterations will be used to make predictions. 
+           iterations will be used to make predictions.
 
     Note that the core models must be passed initialized. They will be
     fit within the Weighted Ensemble model::
 
                 from pyPhenology import models, utils
                 observations, predictors = utils.load_test_data(name='vaccinium')
-                
+
                 m1 = models.Thermaltime(parameters={'T':0})
                 m2 = models.Thermaltime(parameters={'T':5})
                 m3 = models.Thermaltime(parameters={'T':-5})
@@ -464,7 +464,7 @@ class WeightedEnsemble(EnsembleBase):
                 m5 = models.Uniforc(parameters={'t1':1})
                 m6 = models.Uniforc(parameters={'t1':30})
                 m7 = models.Uniforc(parameters={'t1':60})
-                
+
                 ensemble = models.WeightedEnsemble(core_models=[m1,m2,m3,m4,m5,m6,m7])
                 ensemble.fit(observations, predictors)
 
@@ -476,7 +476,7 @@ class WeightedEnsemble(EnsembleBase):
     """
     def __init__(self, core_models):
         """Weighted Ensemble model
-        
+
         core_models : list of pyPhenology models, or a saved model file
 
         """
@@ -488,7 +488,7 @@ class WeightedEnsemble(EnsembleBase):
             # List of models to fit
             self.model_list = core_models
             self.weights = np.array([None] * len(core_models))
-            
+
         elif isinstance(core_models, str):
             # A filename pointing toward a file from save_params()
             model_info = utils.misc.read_saved_model(model_file=core_models)
@@ -524,22 +524,22 @@ class WeightedEnsemble(EnsembleBase):
 
     def fit(self, observations, predictors, iterations=10, held_out_percent=0.2,
             loss_function='rmse', method='DE', optimizer_params='practical',
-            n_jobs=1, verbose=False, debug=False):
+            n_jobs=1):
         """Fit the underlying core models
-        
+
         Parameters:
             observations : dataframe
                 pandas dataframe of phenology observations
-            
+
             predictors : dataframe
                 pandas dataframe of associated predictors
-            
+
             iterations : int
                 Number of stacking iterations to use.
-            
+
             held_out_percent : float
                 Percent of randomly held out data to use in each stacking
-                iteration. Must be between 0 and 1. 
+                iteration. Must be between 0 and 1.
 
             n_jobs : int
                 number of parallel processes to use
@@ -549,13 +549,13 @@ class WeightedEnsemble(EnsembleBase):
         """
         self.observations = observations
         self.predictors = predictors
-        
+
         self.fitted_weights = np.empty((iterations, len(self.model_list)))
-        
+
         loss = utils.optimize.get_loss_function(loss_function)
         weight_bounds = [(1,10)] * len(self.model_list)
         translate_scipy_weights = lambda w: np.array(w)
-        
+
         with Parallel(n_jobs = n_jobs) as parallel:
             for i in range(iterations):
                 held_out_observations = self.observations.sample(frac=held_out_percent,
@@ -565,21 +565,21 @@ class WeightedEnsemble(EnsembleBase):
                 # Fit every model with a new set of random training data
                 self.model_list = parallel(delayed(self._fit_job)
                     (m, training_observations, predictors,
-                     loss_function=loss_function, method=method, 
+                     loss_function=loss_function, method=method,
                      optimizer_params=optimizer_params,
-                     verbose=verbose, debug=debug) for m in self.model_list)
-                
+                     ) for m in self.model_list)
+
                 # Predict with every model on a new set of random test data
                 held_out_predictions = [model.predict(held_out_observations, predictors=predictors) for model in self.model_list]
                 held_out_predictions = np.array(held_out_predictions).T
-        
+
                 # Special funtion for use inside scipy.optimize routines
                 def weighted_loss(w):
                     w = np.array([w])
                     w = w/w.sum()
                     pred = (held_out_predictions * w).sum(1)
                     return loss(held_out_observations.doy.values, pred)
-                
+
                 # Find the weights of each model with minimize RMSE
                 iteration_weights = utils.optimize.fit_parameters(function_to_minimize = weighted_loss,
                                                                   bounds = weight_bounds,
@@ -588,21 +588,21 @@ class WeightedEnsemble(EnsembleBase):
                                                                   results_translator=translate_scipy_weights)
                 iteration_weights = iteration_weights / iteration_weights.sum()
                 self.fitted_weights[i] = iteration_weights
-        
+
             self.weights = self.fitted_weights.mean(0)
-            
+
             # Sum of weights should equal or be extremely close to 1
             summed_weights = self.weights.sum().round(5)
             if summed_weights != 1.0:
                 raise RuntimeError('Weights do not sum to 1, got '+str(summed_weights))
-            
-            # Refit the core models one last time to the full dataset. These 
+
+            # Refit the core models one last time to the full dataset. These
             # fitted models will be compbined with the weights for predictions
             self.model_list = parallel(delayed(self._fit_job)
                 (m, observations, predictors,
-                 loss_function=loss_function, method=method, 
+                 loss_function=loss_function, method=method,
                  optimizer_params=optimizer_params,
-                 verbose=verbose, debug=debug) for m in self.model_list)
+                 ) for m in self.model_list)
 
     def predict(self, to_predict=None, predictors=None,
                 aggregation = 'mean', n_jobs=1, **kwargs):
@@ -613,22 +613,22 @@ class WeightedEnsemble(EnsembleBase):
 
         Parameters:
             see core model description
-            
+
             aggregation : str
                 Either 'weighted_mean' to get a normal prediciton, or 'none'
                 to get predictions for all models. If using 'none' this returns
-                a tuple of (weights, predictions). 
-            
+                a tuple of (weights, predictions).
+
             n_jobs : int
                 number of parallel processes to use
 
         """
 
         self._check_parameter_completeness()
-        
+
         if not isinstance(aggregation, str):
             raise TypeError('aggregation should be a string. got: ' + str(type(aggregation)))
-            
+
         if predictors is None and to_predict is None:
             predictors = self.predictors
             to_predict = self.observations
@@ -653,9 +653,9 @@ class WeightedEnsemble(EnsembleBase):
         """Make sure all parameters have been set from fitting or loading at initialization"""
         if not len(self.weights) == len(self.model_list):
             raise RuntimeError('Model not fit')
-        
+
         [m._check_parameter_completeness() for m in self.model_list]
-    
+
     def get_params(self):
         self._check_parameter_completeness()
 
@@ -674,4 +674,4 @@ class WeightedEnsemble(EnsembleBase):
     def get_weights(self):
         self._check_parameter_completeness()
         return self.weights
-    
+

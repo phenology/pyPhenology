@@ -1,3 +1,5 @@
+This fork was used to try and make pyphenology more sklearn compliant. In the end, we [included a tutorial in springtime](https://github.com/phenology/springtime/pull/208) on how one could go about this. We are not currently not planning to develop this further, but feel free to talk to us if you're interested.
+
 # pyPhenology  
 [![PyPI](https://img.shields.io/pypi/v/pyPhenology.svg?style=plastic)](https://pypi.org/project/pyPhenology/)
 [![test-package](https://github.com/sdtaylor/pyPhenology/actions/workflows/test-package.yml/badge.svg)](https://github.com/sdtaylor/pyPhenology/actions/workflows/test-package.yml) 

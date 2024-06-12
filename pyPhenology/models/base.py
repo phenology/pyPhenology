@@ -29,11 +29,11 @@ class BaseModel():
                 temperature, precipitation, and day length
 
             loss_function : str, or function
-            
-            A string for built in loss functions (currently only 'rmse'), 
+
+            A string for built in loss functions (currently only 'rmse'),
             or a customized function which accpepts 2 arguments. obs and pred,
             both numpy arrays of the same shape
-            
+
             method : str
                 Optimization method to use. Either 'DE' or 'BF' for differential
                 evolution or brute force methods.
@@ -49,16 +49,31 @@ class BaseModel():
                 display various internals
 
         """
-
-        validation.validate_predictors(predictors, self._required_data['predictor_columns'])
-        validation.validate_observations(observations)
         self._set_loss_function(loss_function)
         if len(self._parameters_to_estimate) == 0:
             raise RuntimeError('No parameters to estimate')
 
-        self._organize_predictors(predictors=predictors,
-                                  observations=observations,
-                                  for_prediction=False)
+        # check if the data is sklearn compatible
+        valid_sklearn, X, y = validation.validate_sklearn_Xy(predictors, observations)
+
+        # sklearn compatible option is not implemented for M1 yet.
+        if "M1" in type(self).__name__:
+            valid_sklearn = False
+
+        if valid_sklearn:
+            self._organize_sklearn_predictors(y=y,
+                                              X=X,
+                                              for_prediction=False)
+        else:
+            warn('Data or model is not sklearn compatible, trying pyphenology'
+            'see https://pyphenology.readthedocs.io/en/master/data_structures.html#data-structure')
+            # check if pyphenology compatible
+            validation.validate_predictors(predictors, self._required_data['predictor_columns'])
+            validation.validate_observations(observations)
+
+            self._organize_predictors(predictors=predictors,
+                                    observations=observations,
+                                    for_prediction=False)
 
         if debug:
             verbose = True
@@ -105,7 +120,7 @@ class BaseModel():
         Parameters:
             to_predict : dataframe, optional
                 pandas dataframe of site/year combinations to predict from
-                the given predictor data. just like the observations 
+                the given predictor data. just like the observations
                 dataframe used in fit() but (optionally) without the doy column
 
             predictors : dataframe, optional
@@ -125,13 +140,31 @@ class BaseModel():
         {'to_predict':pd.DataFrame,'predictors':pd.DataFrame}
         {'to_predict':None,'predictors':None}
         """
+        if to_predict is None and predictors is None:
+            # Making predictions on data used for fitting
+            if self.obs_fitting is not None and self.fitting_predictors is not None:
+                predictors = self.fitting_predictors
+            else:
+                raise TypeError('No to_predict + temperature passed, and' +
+                                    'no fitting done. Nothing to predict')
 
-        if to_predict is None and isinstance(predictors, dict):
-            # predictors is a dict containing data that can be
-            # used directly in _apply_mode()
-            self._validate_formatted_predictors(predictors)
+        elif to_predict is None and predictors is not None:
+            # check if the data is sklearn compatible
+            valid_sklearn, X = validation.validate_sklearn_X(predictors)
+            if valid_sklearn:
+                # not implemented for M1
+                predictors = self._organize_sklearn_predictors(y=None,
+                                                               X=X,
+                                                               for_prediction=True)
 
-        elif isinstance(to_predict, pd.DataFrame) and isinstance(predictors, pd.DataFrame):
+            elif isinstance(predictors, dict):
+                # predictors is a dict containing data that can be
+                # used directly in _apply_mode()
+                self._validate_formatted_predictors(predictors)
+            else:
+                raise TypeError('Invalid arguments.')
+
+        elif to_predict is not None and predictors is not None:
             # New data to predict
             validation.validate_predictors(predictors, self._required_data['predictor_columns'])
             validation.validate_observations(to_predict, for_prediction=True)
@@ -139,14 +172,6 @@ class BaseModel():
             predictors = self._organize_predictors(observations=to_predict,
                                                    predictors=predictors,
                                                    for_prediction=True)
-
-        elif to_predict is None and predictors is None:
-            # Making predictions on data used for fitting
-            if self.obs_fitting is not None and self.fitting_predictors is not None:
-                predictors = self.fitting_predictors
-            else:
-                raise TypeError('No to_predict + temperature passed, and' +
-                                'no fitting done. Nothing to predict')
         else:
             raise TypeError('Invalid arguments. to_predict and predictors ' +
                             'must both be pandas dataframes of new data to predict,' +
@@ -161,7 +186,7 @@ class BaseModel():
         """The loss function (ie. RMSE)
 
         Either a sting for a built in function, or a customized
-        function which accpepts 2 arguments. obs, pred, both 
+        function which accpepts 2 arguments. obs, pred, both
         numpy arrays of the same shape
         """
         if isinstance(loss_function, str):
@@ -176,7 +201,7 @@ class BaseModel():
         """Convert data to internal structure used by models
 
         This function inside _base() is used for all the modes which
-        have temperature as the only predictor variables (which is most of them). 
+        have temperature as the only predictor variables (which is most of them).
         Models which have other predictors have their own _organize_predictors() method.
         """
         if for_prediction:
@@ -193,6 +218,23 @@ class BaseModel():
                                        'doy_series': doy_series}
             self.obs_fitting = cleaned_observations
 
+    def _organize_sklearn_predictors(self, y, X, for_prediction):
+        """Convert incoming data to expected structure.
+        It is documented in
+        https://pyphenology.readthedocs.io/en/master/data_structures.html In
+        pyphenology, the processed temperature has a shape of (features,
+        samples) whereas in sklearn has (samples, features), this is the reason
+        for X.T below. `doy_series` is the julian date of the temperature, here
+        it is an array of numbers each corresponds to a column of X.
+        """
+        if for_prediction:
+            return {'temperature': X.T,
+                    'doy_series': np.arange(X.shape[1])}
+        else:
+            self.fitting_predictors = {'temperature': X.T,
+                                        'doy_series': np.arange(X.shape[1])}
+            self.obs_fitting = y
+
     def _validate_formatted_predictors(self, predictors):
         """Make sure everything is valid.
 
@@ -200,8 +242,8 @@ class BaseModel():
         is passed to predict() or fit().
 
         This function inside _base() is used for all the modes which
-        have temperature as the only predictor variables (which is most of them). 
-        Models which have other predictors have their own 
+        have temperature as the only predictor variables (which is most of them).
+        Models which have other predictors have their own
         _validate_formatted_predictors() method.
         """
         # Don't allow any nan values in 2d temperature array
@@ -324,7 +366,7 @@ class BaseModel():
         """Map parameters from a 1D array to a dictionary for
         use in phenology model functions. Ordering matters
         in unpacking the scipy_array since it isn't labeled. Thus
-        it relies on self._parameters_to_estimate being an 
+        it relies on self._parameters_to_estimate being an
         OrdereddDict
         """
         # If only a single value is being fit, some scipy.
@@ -388,25 +430,25 @@ class BaseModel():
         Metrics available are root mean square error (``rmse``) and AIC (``aic``).
         For AIC the number of parameters in the model is set to the number of
         parameters actually estimated in ``fit()``, not the total number of
-        model parameters. 
+        model parameters.
 
         Parameters:
             metric : str, optional
                 The metric used either 'rmse' for the root mean square error,
                 or 'aic' for akaike information criteria.
-                
+
             doy_observed : numpy array, optional
                 The true doy values to evaluate with. This must be a numpy
                 array the same length as the number of rows in to_predict
 
             to_predict : dataframe, optional
                 pandas dataframe of site/year combinations to predict from
-                the given predictor data. just like the observations 
+                the given predictor data. just like the observations
                 dataframe used in fit() but (optionally) without the doy column
 
             predictors : dataframe, optional
                 pandas dataframe in the format specific to this package
-        
+
         Returns:
             The score as a float
         """

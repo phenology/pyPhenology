@@ -1,4 +1,31 @@
 import pandas as pd
+from sklearn.utils import check_X_y, check_array
+
+
+def validate_sklearn_Xy(predictors, observations):
+    """Input validation for standard estimators.
+
+    check_X_y will raise a ValueError if the inputs are not compatible."""
+    valid_sklearn_Xy = True
+    try:
+        predictors, observations = check_X_y(predictors, observations)
+    except ValueError:
+        valid_sklearn_Xy = False
+
+    return valid_sklearn_Xy, predictors, observations
+
+
+def validate_sklearn_X(predictors):
+    """Input validation for standard estimators.
+
+    check_array will raise a ValueError if the inputs are not compatible."""
+    valid_sklearn_X = True
+    try:
+        predictors = check_array(predictors)
+    except ValueError:
+        valid_sklearn_X = False
+
+    return valid_sklearn_X, predictors
 
 
 def validate_predictors(predictor_df, valid_columns):

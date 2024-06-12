@@ -74,10 +74,11 @@ class TestPyCaretCompliance:
         df["doy"] = doy_array
         df.dropna(inplace=True)
         df_test = df.iloc[:10]  # same as above
+        df_train = df.iloc[11:]
 
         # Create pycaret instances
         exp = RegressionExperiment()
-        exp.setup(df, target="doy", session_id=123, test_data=df_test, index=False, preprocess=False)
+        exp.setup(df_train, target="doy", session_id=123, test_data=df_test, index=True, preprocess=False)
         model = exp.create_model(SklearnThermalTime(optimizer_params=optimizer_params), cross_validation=False)
 
         # it should be possible to get `RMSE`` from `model` but I want to test
@@ -92,7 +93,7 @@ class TestPyCaretCompliance:
 
         # Note: if data changes, the test might fail!
         # Note: RMSE of pyPhenology and pyCaret are not exactly the same!
-        assert abs(rmse_phenology - rmse_pycaret) < 1  # 1 doy, not strict
+        assert abs(rmse_phenology - rmse_pycaret) < 0.5  # half doy, not strict
 
 
 if __name__ == "__main__":
